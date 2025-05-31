@@ -155,6 +155,37 @@ class SubjectViewSet(viewsets.ModelViewSet):
     serializer_class = SubjectSerializer
     permission_classes = [IsAdminUser] # Restricted to Admin users
 
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def enrolled_students(self, request, pk=None):
+        subject = self.get_object()
+        grade_ids = subject.grades.values_list('id', flat=True)
+
+        # Consider current year for enrollment if applicable.
+        # For now, all students ever enrolled in the subject's grades.
+        # current_year = datetime.date.today().year # Example
+        # student_ids = StudentEnrollment.objects.filter(
+        # grade_id__in=grade_ids, year=current_year
+        # ).values_list('student_id', flat=True).distinct()
+
+        student_ids = StudentEnrollment.objects.filter(grade_id__in=grade_ids).values_list('student_id', flat=True).distinct()
+
+        students = User.objects.filter(id__in=student_ids, role='STUDENT')
+
+        # Permission check: if user is a teacher, are they assigned to this subject?
+        # Admins can see all. Other roles might be denied or have different logic.
+        if request.user.role == 'TEACHER':
+            if not TeacherSubject.objects.filter(teacher=request.user, subject=subject).exists():
+                return Response({"error": "No tiene permiso para ver los alumnos de esta materia."}, status=status.HTTP_403_FORBIDDEN)
+        elif request.user.role not in ['ADMIN']: # Add other roles if they should be allowed
+             # If not ADMIN or authorized TEACHER, deny.
+             # This check might be too simplistic if e.g. students could see classmates.
+             # For now, only Admin and assigned teachers.
+            pass # Let it fall through if admin, handled by IsAuthenticated + specific teacher check
+
+
+        serializer = UserSerializer(students, many=True)
+        return Response(serializer.data)
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         try:

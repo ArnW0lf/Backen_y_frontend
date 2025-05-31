@@ -1,36 +1,42 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LoginComponent } from './components/login/login.component';
-import { RegisterComponent } from './components/register/register.component';
+import { Router, RouterModule, RouterOutlet } from '@angular/router'; // Import Router & RouterModule
+import { AuthService } from './services/auth.service'; // Adjust path as needed
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
     CommonModule,
-    LoginComponent,
-    RegisterComponent
+    RouterOutlet,
+    RouterModule // Add RouterModule for routerLink
   ],
-  template: `
-    <div class="container mt-5">
-      <app-login *ngIf="!showRegister"></app-login>
-      <app-register *ngIf="showRegister"></app-register>
-      
-      <div class="text-center mt-3">
-        <button class="btn btn-link" (click)="showRegister = !showRegister">
-          {{ showRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate' }}
-        </button>
-      </div>
-    </div>
-  `,
-  styles: [
-    `
-      .container {
-        max-width: 400px;
-      }
-    `
-  ]
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  showRegister = false;
+  constructor(private authService: AuthService, private router: Router) {}
+
+  isLoggedIn(): boolean {
+    return this.authService.isLoggedIn();
+  }
+
+  getUserRole(): string | null {
+    return this.authService.getUserRole();
+  }
+
+  logout(): void {
+    this.authService.logout();
+    // Navigation to /login is handled by authService.logout()
+  }
+
+  getDashboardLink(): string {
+    const role = this.authService.getUserRole();
+    if (role === 'ADMIN') return '/admin/dashboard';
+    if (role === 'TEACHER') return '/teacher/dashboard';
+    if (role === 'STUDENT') return '/student/dashboard';
+    if (role === 'PARENT') return '/parent/dashboard';
+    // Fallback if logged in but role is weird, or for a generic link if desired
+    return this.isLoggedIn() ? '/login' : '/login'; // Default to login if role unknown or not logged in
+  }
 }
