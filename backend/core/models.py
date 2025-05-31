@@ -15,6 +15,7 @@ class CustomUser(AbstractUser):
     dni = models.CharField(max_length=20, unique=True, null=True, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     children = models.ManyToManyField('self', blank=True, limit_choices_to={'role': 'STUDENT'}, symmetrical=False)
+    specialty = models.CharField(max_length=100, null=True, blank=True) # Field for teacher's specialty
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
